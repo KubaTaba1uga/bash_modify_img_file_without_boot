@@ -75,6 +75,7 @@ sudo losetup -d /dev/loop0
 To confirm the expansion, check the available space:
 
 ```bash
+sudo bash /path/to/image.img
 df -h
 ```
 
