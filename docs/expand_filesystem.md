@@ -40,7 +40,7 @@ Before using `parted`, identify the device where the root filesystem is mounted:
 lsblk
 ```
 
-Use `parted` inside the image after running `sandbox.sh`:
+Use `parted` inside the image:
 
 ```bash
 sudo parted /dev/loop0
@@ -60,7 +60,7 @@ sudo resize2fs /dev/loop0p2
 ```
 
 ### 5. Verify Changes
-To confirm the expansion, boot the Raspberry Pi and check available space:
+To confirm the expansion check available space:
 
 ```bash
 df -h /
