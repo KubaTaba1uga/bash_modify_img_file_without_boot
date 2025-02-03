@@ -94,26 +94,36 @@ setup_qemu_arm64() {
     if [[ "$USE_ARM64" == true ]]; then
         echo "Setting up QEMU for ARM64..."
 
+	# Restart binfmt to reset all custom settings
+        systemctl restart systemd-binfmt
+
         # Ensure qemu-user-static is installed
         if ! command -v qemu-aarch64-static &> /dev/null; then
             echo "qemu-user-static not found. Installing..."
             apt update && apt install -y qemu-user-static
         fi
 
-        # Copy qemu-user-static into the chroot environment
-        cp /usr/bin/qemu-aarch64-static "$MNT_DIR/usr/bin/"
-
-        # Ensure binfmt_misc is mounted
-        if ! mountpoint -q /proc/sys/fs/binfmt_misc; then
-            mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
-        fi
-
-        # Register QEMU if not already registered
+        # Ensure qemu-aarch64 entry exists in binfmt_misc
         if [[ ! -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]]; then
-            echo ":qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff:/usr/bin/qemu-aarch64-static:" > /proc/sys/fs/binfmt_misc/register
-        else
-            echo "qemu-aarch64 is already registered in binfmt_misc."
+            echo "Error: qemu-aarch64 is not registered in binfmt_misc. Exiting."
+            exit 1
         fi
+
+        # Extract QEMU interpreter path from /proc/sys/fs/binfmt_misc/qemu-aarch64
+        QEMU_PATH=$(awk '/interpreter/{print $2}' /proc/sys/fs/binfmt_misc/qemu-aarch64)
+
+        # Validate extracted path
+        if [[ -z "$QEMU_PATH" || ! -f "$QEMU_PATH" ]]; then
+            echo "Error: Could not extract valid QEMU interpreter path from binfmt_misc. Exiting."
+            exit 1
+        fi
+
+        echo "Using QEMU interpreter: $QEMU_PATH"
+
+        # Copy QEMU into the chroot environment
+        cp "$QEMU_PATH" "$MNT_DIR/usr/bin/"
+
+        echo "QEMU setup complete."
     fi
 }
 
@@ -127,7 +137,7 @@ main() {
     setup_mount_dirs
     attach_image
     mount_partitions
-    setup_qemu_arm64
+    # setup_qemu_arm64
     enter_chroot
     echo "Sandbox session complete."
 }
