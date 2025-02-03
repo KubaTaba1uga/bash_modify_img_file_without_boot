@@ -94,7 +94,6 @@ setup_qemu_arm64() {
     if [[ "$USE_ARM64" == true ]]; then
         echo "Setting up QEMU for ARM64..."
 
-	# Restart binfmt to reset all custom settings
         systemctl restart systemd-binfmt
 
         # Ensure qemu-user-static is installed
@@ -137,7 +136,7 @@ main() {
     setup_mount_dirs
     attach_image
     mount_partitions
-    # setup_qemu_arm64
+    setup_qemu_arm64
     enter_chroot
     echo "Sandbox session complete."
 }
