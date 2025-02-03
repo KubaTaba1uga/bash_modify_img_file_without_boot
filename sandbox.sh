@@ -1,8 +1,14 @@
 #!/bin/bash
 set -euo pipefail  # Exit on error
 
+# Ensure script is run with an image file argument
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 <path-to-image-file>"
+    exit 1
+fi
+
 # Define global variables
-IMG_FILE="/tmp/2024-11-19-raspios-bookworm-arm64-lite.img"  # Change this to your actual image file
+IMG_FILE="$1"
 MNT_DIR="$(mktemp -d)"
 BOOT_DIR="$MNT_DIR/boot"
 LOOP_DEV=""
