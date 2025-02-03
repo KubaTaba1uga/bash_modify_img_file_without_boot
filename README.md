@@ -74,7 +74,7 @@ Sandbox session complete.
 - **Permission denied:** Ensure the script is run with `sudo`.
 
 ## Testing
-This script has been tested on Raspberry Pi OS.
+This script has been tested on Raspberry Pi OS on arm64 and on Debian 12 bookworm on x86.
 
 ## License
 This script is licensed under the MIT License. Modify and distribute as needed.
