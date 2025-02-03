@@ -18,8 +18,10 @@ This script allows you to mount and chroot into a Raspberry Pi OS image file. It
 Run the script with root privileges, providing the path to the image file as an argument:
 
 ```bash
-sudo bash sandbox.sh /path/to/image.img
+sudo bash sandbox.sh /path/to/image.img [--arm64]
 ```
+
+If you are running the script on x86 architecture remember to include `--arm64` flag. 
 
 ### Flashing the Image to an SD Card
 To write the `.img` file to an SD card, use the following command:
