@@ -2,8 +2,8 @@
 set -euo pipefail  # Exit on error
 
 # Ensure script is run with an image file argument
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <path-to-image-file>"
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+    echo "Usage: $0 <path-to-image-file> [--arm64]"
     exit 1
 fi
 
@@ -14,6 +14,12 @@ BOOT_DIR="$MNT_DIR/boot"
 LOOP_DEV=""
 ROOT_PART=""
 BOOT_PART=""
+USE_ARM64=false
+
+# Check for optional --arm64 flag
+if [[ $# -eq 2 && "$2" == "--arm64" ]]; then
+    USE_ARM64=true
+fi
 
 # Ensure script is run as root
 ensure_root() {
@@ -32,11 +38,17 @@ cleanup() {
     umount "$MNT_DIR/sys" || true
     umount "$MNT_DIR/tmp" || true
     umount "$MNT_DIR/var/tmp" || true
-    umount "$MNT_DIR/run/user/0" || true
+    umount "$MNT_DIR/run/user/0" || true    
     umount -l "$BOOT_DIR" || true
     umount -l "$MNT_DIR" || true
     [[ -n "$LOOP_DEV" ]] && losetup -d "$LOOP_DEV"
     rm -rf "$MNT_DIR"
+
+    # Unregister QEMU from binfmt_misc if needed
+    if [[ -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]]; then
+        echo -1 > /proc/sys/fs/binfmt_misc/qemu-aarch64
+    fi
+
     echo "Cleanup complete."
 }
 trap cleanup EXIT
@@ -77,9 +89,36 @@ mount_partitions() {
     mount -t devpts chpts "$MNT_DIR/dev/pts" || mount --bind /dev/pts "$MNT_DIR/dev/pts"
 }
 
-# Enter chroot environment
+# Setup QEMU for ARM64 if flag is enabled
+setup_qemu_arm64() {
+    if [[ "$USE_ARM64" == true ]]; then
+        echo "Setting up QEMU for ARM64..."
+
+        # Ensure qemu-user-static is installed
+        if ! command -v qemu-aarch64-static &> /dev/null; then
+            echo "qemu-user-static not found. Installing..."
+            apt update && apt install -y qemu-user-static
+        fi
+
+        # Copy qemu-user-static into the chroot environment
+        cp /usr/bin/qemu-aarch64-static "$MNT_DIR/usr/bin/"
+
+        # Ensure binfmt_misc is mounted
+        if ! mountpoint -q /proc/sys/fs/binfmt_misc; then
+            mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
+        fi
+
+        # Register QEMU if not already registered
+        if [[ ! -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]]; then
+            echo ":qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff:/usr/bin/qemu-aarch64-static:" > /proc/sys/fs/binfmt_misc/register
+        else
+            echo "qemu-aarch64 is already registered in binfmt_misc."
+        fi
+    fi
+}
+
 enter_chroot() {
-    chroot "$MNT_DIR" /bin/bash || true
+    chroot "$MNT_DIR" /bin/bash
 }
 
 # Main function
@@ -88,9 +127,11 @@ main() {
     setup_mount_dirs
     attach_image
     mount_partitions
+    setup_qemu_arm64
     enter_chroot
     echo "Sandbox session complete."
 }
 
 # Run main function
 main
+
