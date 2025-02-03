@@ -1,14 +1,16 @@
 # Expanding a Raspberry Pi OS Image File
 
 ## Overview
-By default, Raspberry Pi OS `.img` files may be too small to accommodate additional software and modifications. This guide describes how to expand the image file by a few gigabytes using `parted`.
+Raspberry Pi OS `.img` files often have limited space, making it necessary to expand them to accommodate additional software and modifications. This guide explains how to safely expand the image file and resize the partitions.
 
 ## Prerequisites
 - A Linux system with root access
-- The following utilities installed:
+- Required utilities:
+  - `truncate`
+  - `losetup`
   - `parted`
-  - `resize2fs`
   - `e2fsck`
+  - `resize2fs`
 - A Raspberry Pi OS image file
 
 ## Steps to Expand the Image
@@ -20,27 +22,27 @@ Expand the `.img` file by a desired amount (e.g., 5GB):
 truncate -s +5G /path/to/image.img
 ```
 
-Alternatively, you can use `dd`:
+Alternatively, use `dd`:
 
 ```bash
 dd if=/dev/zero bs=1G count=5 >> /path/to/image.img
 ```
 
-### 2. Run `sandbox.sh` Before Resizing
-To properly operate within the image file, first run `sandbox.sh`:
+### 2. Attach the Image to a Loop Device
+Map the image file to a loop device:
 
 ```bash
-sudo bash sandbox.sh /path/to/image.img
+sudo losetup -fP /path/to/image.img
 ```
 
-### 3. Identify Root Filesystem Device and Resize the Partition Using `parted`
-Before using `parted`, identify the device where the root filesystem is mounted:
+List loop devices to find the assigned name (e.g., `/dev/loop0`):
 
 ```bash
-lsblk
+sudo losetup -a
 ```
 
-Use `parted` inside the image:
+### 3. Resize the Partition Using `parted`
+Resize the partition to use the new space:
 
 ```bash
 sudo parted /dev/loop0
@@ -49,24 +51,31 @@ sudo parted /dev/loop0
 (parted) quit
 ```
 
-This expands partition #2 to use the available space.
-
 ### 4. Check and Resize the Filesystem
-After resizing the partition, check and expand the filesystem:
+Run a filesystem check before resizing:
 
 ```bash
 sudo e2fsck -f /dev/loop0p2
+```
+
+Expand the filesystem to fill the new space:
+
+```bash
 sudo resize2fs /dev/loop0p2
 ```
 
-### 5. Verify Changes
-To confirm the expansion check available space:
+### 5. Detach the Loop Device
+Once resizing is complete, detach the loop device:
 
 ```bash
-df -h /
+sudo losetup -d /dev/loop0
 ```
 
+### 6. Verify Changes
+To confirm the expansion, check the available space:
 
+```bash
+df -h
+```
 
-
-
+Now, the Raspberry Pi OS image file has more storage available.
