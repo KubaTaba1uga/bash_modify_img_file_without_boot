@@ -1,4 +1,4 @@
-# Sandbox Setup Script
+# Modify IMG file without boot
 
 ## Overview
 This script allows you to mount and chroot into a Raspberry Pi OS image file. It automates the process of attaching the image to a loop device, mounting partitions, and entering a chroot environment for modifications.
@@ -15,6 +15,12 @@ This script allows you to mount and chroot into a Raspberry Pi OS image file. It
 
 ## Usage
 
+Run the script with root privileges, providing the path to the image file as an argument:
+
+```bash
+sudo bash sandbox.sh /path/to/image.img
+```
+
 ### Flashing the Image to an SD Card
 To write the `.img` file to an SD card, use the following command:
 
@@ -28,11 +34,6 @@ sudo dd if=/path/to/image.img of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 *(Replace `/dev/sdX` with your actual SD card device path. Be careful, as this operation is destructive.)*
 
-Run the script with root privileges, providing the path to the image file as an argument:
-
-```bash
-sudo bash sandbox.sh /path/to/image.img
-```
 
 ## Script Functionality
 1. **Checks for Root Privileges**
