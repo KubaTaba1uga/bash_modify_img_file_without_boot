@@ -1,4 +1,10 @@
 #!/bin/bash
+# 
+# License: MIT (See LICENSE file for details)
+# 
+# Author: Jakub Buczynski
+# Alias: KubaTaba1uga aka Taba1uga
+#
 set -euo pipefail  # Exit on error
 
 # Ensure script is run with an image file argument
