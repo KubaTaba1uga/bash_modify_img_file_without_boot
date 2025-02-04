@@ -8,7 +8,7 @@
 set -euo pipefail  # Exit on error
 
 # Ensure script is run with at least an image file argument
-if [[ $# -lt 1 || $# -gt 3 ]]; then
+if [[ $# -lt 1 || $# -gt 4 ]]; then
     echo "Usage: $0 <path-to-image-file> [--arm64] [--script <path-to-script>]"
     exit 1
 fi
