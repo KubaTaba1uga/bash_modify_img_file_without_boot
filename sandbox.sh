@@ -7,9 +7,9 @@
 #
 set -euo pipefail  # Exit on error
 
-# Ensure script is run with an image file argument
-if [[ $# -lt 1 || $# -gt 2 ]]; then
-    echo "Usage: $0 <path-to-image-file> [--arm64]"
+# Ensure script is run with at least an image file argument
+if [[ $# -lt 1 || $# -gt 3 ]]; then
+    echo "Usage: $0 <path-to-image-file> [--arm64] [--script <path-to-script>]"
     exit 1
 fi
 
@@ -21,11 +21,30 @@ LOOP_DEV=""
 ROOT_PART=""
 BOOT_PART=""
 USE_ARM64=false
+CHROOT_SCRIPT=""
 
-# Check for optional --arm64 flag
-if [[ $# -eq 2 && "$2" == "--arm64" ]]; then
-    USE_ARM64=true
-fi
+# Parse arguments
+shift
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --arm64)
+            USE_ARM64=true
+            ;;
+        --script)
+            shift
+            if [[ -z "$1" || ! -f "$1" ]]; then
+                echo "Error: Invalid script path provided."
+                exit 1
+            fi
+            CHROOT_SCRIPT="$1"
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 # Ensure script is run as root
 ensure_root() {
@@ -133,7 +152,14 @@ setup_qemu_arm64() {
 }
 
 enter_chroot() {
-    chroot "$MNT_DIR" /bin/bash
+    if [[ -n "$CHROOT_SCRIPT" ]]; then
+        echo "Running script inside chroot: $CHROOT_SCRIPT"
+        cp "$CHROOT_SCRIPT" "$MNT_DIR/tmp/script.sh"
+        chmod +x "$MNT_DIR/tmp/script.sh"
+        chroot "$MNT_DIR" /bin/bash -c "/tmp/script.sh"
+    else
+        chroot "$MNT_DIR" /bin/bash
+    fi
 }
 
 # Main function
